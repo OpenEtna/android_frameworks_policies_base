@@ -173,6 +173,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     static public final String SYSTEM_DIALOG_REASON_RECENT_APPS = "recentapps";
     static public final String SYSTEM_DIALOG_REASON_HOME_KEY = "homekey";
 
+    // how much time to wait in milliseconds to kill with the back key
+    static private final int LONG_PRESS_KEY_BACK_TIMEOUT = 5000;
+
     final Object mLock = new Object();
     
     Context mContext;
@@ -1241,7 +1244,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             return true;
         } else if (code == KeyEvent.KEYCODE_BACK) {
             if (down && repeatCount == 0) {
-                mHandler.postDelayed(mBackLongPress, ViewConfiguration.getGlobalActionKeyTimeout());
+                mHandler.postDelayed(mBackLongPress, LONG_PRESS_KEY_BACK_TIMEOUT);
             }
             return false;
         } else if (code == KeyEvent.KEYCODE_MENU) {
@@ -2149,9 +2152,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     }
                 }
             } else if (isMediaKey(code)) {
+		
                 // This key needs to be handled even if the screen is off.
                 // If others need to be handled while it's off, this is a reasonable
                 // pattern to follow.
+				/* disabled as in OpenEtna we don't want the music controls available with screen off
                 if ((result & ACTION_PASS_TO_USER) == 0) {
                     // Only do this if we would otherwise not pass it to the user. In that
                     // case, the PhoneWindow class will do the same thing, except it will
@@ -2161,7 +2166,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                             code, keyRepeatCount);
                     mBroadcastWakeLock.acquire();
                     mHandler.post(new PassHeadsetKey(keyEvent));
-                }
+                }*/
             } else if (code == KeyEvent.KEYCODE_CALL) {
                 // If an incoming call is ringing, answer it!
                 // (We handle this key here, rather than in the InCallScreen, to make
