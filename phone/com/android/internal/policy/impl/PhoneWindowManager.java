@@ -500,9 +500,14 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             }
         }
     };
-    
+    volatitle boolean backPressed = false;
+	
     Runnable mBackLongPress = new Runnable() {
         public void run() {
+			//back button is not pressed now! there is nothing to do in here
+			if (!backPressed)
+				return;
+		
             if (Settings.Secure.getInt(mContext.getContentResolver(),
                 Settings.Secure.KILL_APP_LONGPRESS_BACK, 0) == 0) {
                 // Bail out unless the user has elected to turn this on.
@@ -1165,10 +1170,20 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mHandler.removeCallbacks(mHomeLongPress);
         }
 
+		
         // Clear a pending BACK longpress if the user releases Back.
-        if ((code == KeyEvent.KEYCODE_BACK) && !down) {
-            mHandler.removeCallbacks(mBackLongPress);
-        }
+		//backPressed has to be set like this because it is volatile, we don't want to set it to false unless it is really to be set that way
+        if ((code == KeyEvent.KEYCODE_BACK)) {
+			if (!down){
+				backPressed = false;	
+				mHandler.removeCallbacks(mBackLongPress);
+			}          
+			else{
+				backPressed = true;
+			}			
+        } else{
+			backPressed = false;
+		}
 
         // If the HOME button is currently being held, then we do special
         // chording with it.
