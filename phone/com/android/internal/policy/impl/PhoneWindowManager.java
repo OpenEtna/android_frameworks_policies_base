@@ -177,6 +177,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     static private final int LONG_PRESS_KEY_BACK_TIMEOUT = 5000;
 
     final Object mLock = new Object();
+	
+	final Object mBackPressLock = new Object();
     
     Context mContext;
     IWindowManager mWindowManager;
@@ -500,13 +502,16 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             }
         }
     };
-    volatitle boolean backPressed = false;
+    boolean backPressed = false;
 	
     Runnable mBackLongPress = new Runnable() {
         public void run() {
 			//back button is not pressed now! there is nothing to do in here
-			if (!backPressed)
-				return;
+			synchronized(mBackPressLock) {
+				if (!backPressed)
+					return;
+			}
+			
 		
             if (Settings.Secure.getInt(mContext.getContentResolver(),
                 Settings.Secure.KILL_APP_LONGPRESS_BACK, 0) == 0) {
@@ -1170,19 +1175,21 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mHandler.removeCallbacks(mHomeLongPress);
         }
 
-		
-        // Clear a pending BACK longpress if the user releases Back.
-		//backPressed has to be set like this because it is volatile, we don't want to set it to false unless it is really to be set that way
-        if ((code == KeyEvent.KEYCODE_BACK)) {
-			if (!down){
-				backPressed = false;	
-				mHandler.removeCallbacks(mBackLongPress);
-			}          
-			else{
-				backPressed = true;
-			}			
-        } else{
-			backPressed = false;
+
+		//synchronize this block to try guarantee that the key back is pressed during the kill callback
+		synchronized(mBackPressLock) {
+			// Clear a pending BACK longpress if the user releases Back.
+			if ((code == KeyEvent.KEYCODE_BACK)) {
+				if (!down){
+					backPressed = false;	
+					mHandler.removeCallbacks(mBackLongPress);
+				}          
+				else{
+					backPressed = true;
+				}			
+			} else{
+				backPressed = false;
+			}
 		}
 
         // If the HOME button is currently being held, then we do special
@@ -2323,7 +2330,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     public void screenTurnedOff(int why) {
         EventLog.writeEvent(70000, 0);
         mKeyguardMediator.onScreenTurnedOff(why);
-        synchronized (mLock) {
+        synchronized (mLock){
             mScreenOn = false;
             updateOrientationListenerLp();
             updateLockScreenTimeout();
